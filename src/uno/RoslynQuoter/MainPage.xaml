@@ -21,7 +21,7 @@
 
         <Grid>
             <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
-                  Margin="15">
+                  Padding="15">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />
