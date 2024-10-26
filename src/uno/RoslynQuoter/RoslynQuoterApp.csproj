@@ -56,4 +56,9 @@
       <None Remove="Platforms\WebAssembly\WasmScripts\GoogleAnalytics.js" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Include="..\..\Quoter.Web\Dtos\QuoterRequestArgument.cs" Link="QuoterRequestArgument.cs" />
+      <Compile Include="..\..\Quoter.Web\ReadyToRunHelper.cs" Link="ReadyToRunHelper.cs" />
+    </ItemGroup>
+
 </Project>
