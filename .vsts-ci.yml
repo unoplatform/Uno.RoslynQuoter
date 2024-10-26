@@ -23,10 +23,19 @@ jobs:
       nugetUpdaterVersion: 2.0.6
       packageAuthor: nventive
 
-  - task: GitVersion@5
+
+  - task: gitversion/setup@0
+    retryCountOnTaskFailure: 3
     inputs:
+      versionSpec: '5.10.3'
+
+  - task: gitversion/execute@0
+    retryCountOnTaskFailure: 3
+    inputs:
+      updateAssemblyInfo: 'False'
       useConfigFile: true
       configFilePath: gitversion.yml
+    displayName: Use GitVersion
 
   - script: |
       dotnet publish $(build.sourcesdirectory)/src/uno/RoslynQuoter/RoslynQuoterApp.csproj "/p:InformationalVersion=$GITVERSION_INFORMATIONALVERSION" 
