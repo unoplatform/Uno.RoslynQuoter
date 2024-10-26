@@ -17,6 +17,8 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using RoslynQuoter;
+using Windows.Web.Http;
+using QuoterWeb;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -135,6 +137,21 @@ public sealed partial class MainPage : Page
                 };
 
                 responseText = quoter.QuoteText(sourceText, nodeKind);
+
+                if (readyToRun.IsChecked ?? false)
+                {
+                    responseText = ReadyToRunHelper.CreateReadyToRunCode(new QuoterRequestArgument
+                    {
+                        SourceText = sourceText,
+                        NodeKind = nodeKind,
+                        OpenCurlyOnNewLine = openCurlyOnNewLine,
+                        CloseCurlyOnNewLine = closeCurlyOnNewLine,
+                        PreserveOriginalWhitespace = preserveOriginalWhitespace,
+                        KeepRedundantApiCalls = keepRedundantApiCalls,
+                        AvoidUsingStatic = avoidUsingStatic,
+                        ReadyToRun = true
+                    }, responseText);
+                }
             }
 
         }

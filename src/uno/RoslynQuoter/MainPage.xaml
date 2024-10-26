@@ -68,6 +68,8 @@
                               Content="Keep redundant API calls " />
                     <CheckBox x:Name="checkBoxNoSyntaxFactory"
                               Content="Do not require 'using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;' " />
+                    <CheckBox x:Name="readyToRun"
+                              Content="Ready-To-Run (with compilation and diagnostics)" />
                 </StackPanel>
                 <TextBox x:Name="result"
                          Grid.Column="1"
