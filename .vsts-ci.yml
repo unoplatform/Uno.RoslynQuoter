@@ -38,7 +38,7 @@ jobs:
     displayName: Use GitVersion
 
   - script: |
-      dotnet publish $(build.sourcesdirectory)/src/uno/RoslynQuoter/RoslynQuoterApp.csproj "/p:InformationalVersion=$GITVERSION_INFORMATIONALVERSION" 
+      dotnet publish -f net9.0-browserwasm $(build.sourcesdirectory)/src/uno/RoslynQuoter/RoslynQuoterApp.csproj "/p:InformationalVersion=$GITVERSION_INFORMATIONALVERSION" 
 
     env:
       GITVERSION_FullSemVer: $(GITVERSION_FullSemVer)
