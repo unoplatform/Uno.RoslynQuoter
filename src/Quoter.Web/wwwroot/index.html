@@ -3,6 +3,7 @@
 <head>
     <title>Roslyn Quoter</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.min.js" integrity="sha512-GoORoNnxst42zE3rYPj4bNBm0Q6ZRXKNH2D9nEmNvVF/z24ywVnijAWVi/09iBiVDQVf3UlZHpzhAJIdd9BXqw==" crossorigin="anonymous"></script>
     <script src="scripts.js"></script>
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=UA-115404565-5"></script>
@@ -17,14 +18,13 @@
 <body onload="onPageLoad();">
     <p class="para">Open-source at <a href="https://github.com/KirillOsenkov/RoslynQuoter" target="_blank">https://github.com/KirillOsenkov/RoslynQuoter</a></p>
     <div id="inputDiv">
-        <div>
-            <textarea id="inputBox" maxlength="2000" spellcheck="false">class C { }</textarea>
-        </div>
+        <div id="inputBox"></div>
         <div>
             <label>
                 Parse as:
                 <select id="nodeKind">
-                    <option value="CompilationUnit">File</option>
+                    <option value="CompilationUnit">Regular-File</option>
+                    <option value="Script">Script-File</option>
                     <option value="MemberDeclaration">Member</option>
                     <option value="Statement">Statement</option>
                     <option value="Expression">Expression</option>
@@ -57,19 +57,23 @@
             </label>
         </div>
         <div>
+            <label>
+                <input id="readyToRun" type="checkbox" />&nbsp;Ready-To-Run (with compilation and diagnostics)
+            </label>
+        </div>
+        <div>
             <button id="submitButton" type="button" onclick="onSubmitClick();">Get Roslyn API calls to generate this code!</button> &nbsp;<span id="working" style="display: none">Working...</span>
         </div>
         <div>
             <button id="LINQPadButton" type="button" onclick="onSubmitLINQPad();">Get Roslyn API calls to generate this code as LINQPad file!</button>
         </div>
     </div>
-    <div id="outputDiv" xml:space="preserve">
-CompilationUnit()
+    <div id="outputDiv"><div id="outputBox" xml:space="preserve">CompilationUnit()
 .WithMembers(
     SingletonList&lt;MemberDeclarationSyntax&gt;(
         ClassDeclaration("C")))
 .NormalizeWhitespace()
-    </div>
+    </div></div>
 
     <a href="https://github.com/KirillOsenkov/RoslynQuoter" target="_blank"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/e7bbb0521b397edbd5fe43e7f760759336b5e05f/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f677265656e5f3030373230302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_green_007200.png"></a>
 

@@ -5,9 +5,30 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using RoslynQuoter;
 using Xunit;
+using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 public class Tests
 {
+    [Fact]
+    public void TestInterpolatedStringWithNewLine()
+    {
+        var expected = $@"InterpolatedStringExpression(
+    Token(SyntaxKind.InterpolatedStringStartToken))
+.WithContents(
+    SingletonList<InterpolatedStringContentSyntax>(
+        InterpolatedStringText()
+        .WithTextToken(
+            Token(
+                TriviaList(),
+                SyntaxKind.InterpolatedStringTextToken,
+                ""Foo \\n!"",
+                @""Foo {"\n"}!"",
+                TriviaList()))))
+.NormalizeWhitespace()";
+
+        Test("$\"Foo \\n!\"", expected, shortenCodeWithUsingStatic: true, nodeKind: NodeKind.Expression);
+    }
+
     [Fact]
     public void TestUsingSystemWithRedundantCalls()
     {
@@ -19,6 +40,8 @@ public class Tests
             SyntaxFactory.IdentifierName(""System""))
         .WithUsingKeyword(
             SyntaxFactory.Token(SyntaxKind.UsingKeyword))
+        .WithNamespaceOrType(
+            SyntaxFactory.IdentifierName(""System""))
         .WithSemicolonToken(
             SyntaxFactory.Token(SyntaxKind.SemicolonToken))))
 .WithEndOfFileToken(
@@ -152,6 +175,8 @@ namespace N
             SyntaxFactory.IdentifierName(""System""))
         .WithUsingKeyword(
             SyntaxFactory.Token(SyntaxKind.UsingKeyword))
+        .WithNamespaceOrType(
+            SyntaxFactory.IdentifierName(""System""))
         .WithSemicolonToken(
             SyntaxFactory.Token(SyntaxKind.SemicolonToken))))
 .WithMembers(
@@ -279,6 +304,68 @@ namespace N
         Test("class C { char c = 'z'; }");
     }
 
+    [Theory]
+    [InlineData("'")]
+    [InlineData("0")]
+    [InlineData("a")]
+    [InlineData("b")]
+    [InlineData("f")]
+    [InlineData("n")]
+    [InlineData("r")]
+    [InlineData("t")]
+    [InlineData("v")]
+    public void TestEscapedCharLiterals(string ch)
+    {
+        Test($"'\\{ch}'", $@"SyntaxFactory.LiteralExpression(
+    SyntaxKind.CharacterLiteralExpression,
+    SyntaxFactory.Literal('\{ch}'))
+.NormalizeWhitespace()", nodeKind: NodeKind.Expression);
+    }
+
+    [Theory]
+    [InlineData("u1234", "ሴ")]
+    [InlineData("x123a", "ሺ")]
+    [InlineData("U00001234", "ሴ")]
+    public void TestEscapedCharLiterals2(string ch, string charValue)
+    {
+        Test($"'\\{ch}'", $@"SyntaxFactory.LiteralExpression(
+    SyntaxKind.CharacterLiteralExpression,
+    SyntaxFactory.Literal(
+        ""'\\{ch}'"",
+        '{charValue}'))
+.NormalizeWhitespace()", nodeKind: NodeKind.Expression);
+    }
+
+    [Fact]
+    public void TestEscapedCharLiterals3()
+    {
+        Test("'\"'", $@"SyntaxFactory.LiteralExpression(
+    SyntaxKind.CharacterLiteralExpression,
+    SyntaxFactory.Literal('""'))
+.NormalizeWhitespace()", nodeKind: NodeKind.Expression);
+    }
+
+    [Fact]
+    public void TestEscapedCharLiterals4()
+    {
+        Test("'\\\\'", $@"SyntaxFactory.LiteralExpression(
+    SyntaxKind.CharacterLiteralExpression,
+    SyntaxFactory.Literal('\\'))
+.NormalizeWhitespace()", nodeKind: NodeKind.Expression);
+    }
+
+    [Fact]
+    public void TestEscapedChar5()
+    {
+        Test("\"@abc\\rdef\"", nodeKind: NodeKind.Expression);
+    }
+
+    [Fact]
+    public void TestEscapedChar6()
+    {
+        Test("@\"\\n\"", nodeKind: NodeKind.Expression);
+    }
+
     [Fact]
     public void TestTrueFalseAndNull()
     {
@@ -324,7 +411,7 @@ class Program
     }
 
     [Fact]
-    public void Roundtrip6()
+    public void RoundtripBoolLiteral()
     {
         Test(@"class C { bool b = true; }");
     }
@@ -393,6 +480,12 @@ int i
         Test(@"class C { void M() { a ? b : c; } }");
     }
 
+    [Fact]
+    public void NotPattern()
+    {
+        Test("x is not null", nodeKind: NodeKind.Expression);
+    }
+
     private static string GetPath(string relativePath)
     {
         if (Path.IsPathRooted(relativePath))
@@ -426,6 +519,16 @@ int i
     public void Roundtrip21()
     {
         Test("#line 1 \"a\\\b\"");
+    }
+
+    [Fact]
+    public void Roundtrip21_1()
+    {
+        Test("\"\b\"", nodeKind: NodeKind.Expression);
+        Test(" \"\b\"", nodeKind: NodeKind.Expression);
+        Test("\"\b\" ", nodeKind: NodeKind.Expression);
+        Test(" \"\b\" ", nodeKind: NodeKind.Expression);
+        Test("\"a\\\b\"", nodeKind: NodeKind.Expression);
     }
 
     [Fact]
@@ -571,7 +674,197 @@ class C { }");
     [Fact]
     public void TestIssue49()
     {
-        Test(@"if () {}", "Parse error. Have you selected the right Parse As context?", nodeKind: NodeKind.MemberDeclaration);
+        Test(
+          @"if () {}",
+          "Parse error. Have you selected the right Parse As context?",
+          nodeKind: NodeKind.MemberDeclaration,
+          testRoundtrip: false);
+    }
+
+    [Fact]
+    public void TestIssue61()
+    {
+        Test(@"void M() { var a = M() is char and > 'H' }");
+    }
+
+    [Fact]
+    public void TestIdentifiers()
+    {
+        Test(@"using System;
+var @class = 12;
+Console.WriteLine(nameof(@class));");
+    }
+
+    [Fact]
+    public void TestFloatLiteral()
+    {
+        Test("1F", @"SyntaxFactory.LiteralExpression(
+    SyntaxKind.NumericLiteralExpression,
+    SyntaxFactory.Literal(1F))
+.NormalizeWhitespace()", nodeKind: NodeKind.Expression);
+    }
+
+    [Fact]
+    public void TestDoubleLiteral()
+    {
+        Test("1D", @"SyntaxFactory.LiteralExpression(
+    SyntaxKind.NumericLiteralExpression,
+    SyntaxFactory.Literal(
+        ""1D"",
+        1D))
+.NormalizeWhitespace()", nodeKind: NodeKind.Expression
+        );
+    }
+
+    [Fact]
+    public void TestDoubleLiteralSmall()
+    {
+        Test("1d", @"SyntaxFactory.LiteralExpression(
+    SyntaxKind.NumericLiteralExpression,
+    SyntaxFactory.Literal(
+        ""1d"",
+        1d))
+.NormalizeWhitespace()", nodeKind: NodeKind.Expression
+        );
+    }
+
+    [Fact]
+    public void TestDecimalLiteral()
+    {
+        Test("1M", @"SyntaxFactory.LiteralExpression(
+    SyntaxKind.NumericLiteralExpression,
+    SyntaxFactory.Literal(1M))
+.NormalizeWhitespace()", nodeKind: NodeKind.Expression
+        );
+    }
+
+    [Fact]
+    public void TestDecimalLiteralSmall()
+    {
+        Test("1m", @"SyntaxFactory.LiteralExpression(
+    SyntaxKind.NumericLiteralExpression,
+    SyntaxFactory.Literal(
+        ""1m"",
+        1m))
+.NormalizeWhitespace()", nodeKind: NodeKind.Expression
+        );
+    }
+
+    [Fact]
+    public void TestUnsignedLiteral()
+    {
+        Test("1u", @"SyntaxFactory.LiteralExpression(
+    SyntaxKind.NumericLiteralExpression,
+    SyntaxFactory.Literal(
+        ""1u"",
+        1u))
+.NormalizeWhitespace()", nodeKind: NodeKind.Expression
+        );
+
+        Test("0x1u", @"SyntaxFactory.LiteralExpression(
+    SyntaxKind.NumericLiteralExpression,
+    SyntaxFactory.Literal(
+        ""0x1u"",
+        0x1u))
+.NormalizeWhitespace()", nodeKind: NodeKind.Expression
+        );
+    }
+
+    [Fact]
+    public void TestLongLiteral()
+    {
+        Test("1l", @"SyntaxFactory.LiteralExpression(
+    SyntaxKind.NumericLiteralExpression,
+    SyntaxFactory.Literal(
+        ""1l"",
+        1l))
+.NormalizeWhitespace()", nodeKind: NodeKind.Expression
+        );
+
+        Test("0x1L", @"SyntaxFactory.LiteralExpression(
+    SyntaxKind.NumericLiteralExpression,
+    SyntaxFactory.Literal(
+        ""0x1L"",
+        0x1L))
+.NormalizeWhitespace()", nodeKind: NodeKind.Expression
+        );
+    }
+
+    [Theory]
+    [InlineData("ul")]
+    [InlineData("uL")]
+    [InlineData("Ul")]
+    [InlineData("lu")]
+    [InlineData("lU")]
+    [InlineData("Lu")]
+    [InlineData("LU")]
+    public void TestUnsignedLongLiteral(string suffix)
+    {
+        Test("1" + suffix, $@"SyntaxFactory.LiteralExpression(
+    SyntaxKind.NumericLiteralExpression,
+    SyntaxFactory.Literal(
+        ""1{suffix}"",
+        1{suffix}))
+.NormalizeWhitespace()", nodeKind: NodeKind.Expression
+        );
+
+        Test("0x2" + suffix, $@"SyntaxFactory.LiteralExpression(
+    SyntaxKind.NumericLiteralExpression,
+    SyntaxFactory.Literal(
+        ""0x2{suffix}"",
+        0x2{suffix}))
+.NormalizeWhitespace()", nodeKind: NodeKind.Expression
+        );
+    }
+
+    [Fact]
+    public void TestUL()
+    {
+        const string suffix = "UL";
+        Test("1" + suffix, $@"SyntaxFactory.LiteralExpression(
+    SyntaxKind.NumericLiteralExpression,
+    SyntaxFactory.Literal(1{suffix}))
+.NormalizeWhitespace()", nodeKind: NodeKind.Expression
+        );
+
+        Test("0x2" + suffix, $@"SyntaxFactory.LiteralExpression(
+    SyntaxKind.NumericLiteralExpression,
+    SyntaxFactory.Literal(
+        ""0x2{suffix}"",
+        0x2{suffix}))
+.NormalizeWhitespace()", nodeKind: NodeKind.Expression
+        );
+    }
+
+    [Fact]
+    public void TestIssue77()
+    {
+        Test("Foo(0x0000800000000000)", NodeKind.Expression);
+    }
+
+    [Fact]
+    public void TestBinaryLiteral()
+    {
+        Test("0b_0010_1010", NodeKind.Expression);
+    }
+
+    [Fact]
+    public void TestRecordStruct()
+    {
+        Test("record struct A();",
+            @"RecordDeclaration(
+    SyntaxKind.RecordStructDeclaration,
+    Token(SyntaxKind.RecordKeyword),
+    Identifier(""A""))
+.WithClassOrStructKeyword(
+    Token(SyntaxKind.StructKeyword))
+.WithParameterList(
+    ParameterList())
+.WithSemicolonToken(
+    Token(SyntaxKind.SemicolonToken))
+.NormalizeWhitespace()", 
+            shortenCodeWithUsingStatic: true,
+            nodeKind: NodeKind.MemberDeclaration);
     }
 
     private void Test(
@@ -580,7 +873,8 @@ class C { }");
         bool useDefaultFormatting = true,
         bool removeRedundantModifyingCalls = true,
         bool shortenCodeWithUsingStatic = false,
-        NodeKind nodeKind = NodeKind.CompilationUnit)
+        NodeKind nodeKind = NodeKind.CompilationUnit,
+        bool testRoundtrip = true)
     {
         var quoter = new Quoter
         {
@@ -591,16 +885,24 @@ class C { }");
         var actual = quoter.QuoteText(sourceText, nodeKind);
         Assert.Equal(expected, actual);
 
-        Test(sourceText);
+        if (testRoundtrip)
+        {
+            Test(sourceText, nodeKind);
+        }
     }
 
-    private void Test(string sourceText)
+    private void Test(string sourceText, NodeKind nodeKind = NodeKind.CompilationUnit)
     {
-        Test(sourceText, useDefaultFormatting: true, removeRedundantCalls: true, shortenCodeWithUsingStatic: false);
-        Test(sourceText, useDefaultFormatting: false, removeRedundantCalls: true, shortenCodeWithUsingStatic: true);
+        Test(sourceText, useDefaultFormatting: true, removeRedundantCalls: true, shortenCodeWithUsingStatic: false, nodeKind);
+        Test(sourceText, useDefaultFormatting: false, removeRedundantCalls: true, shortenCodeWithUsingStatic: true, nodeKind);
     }
 
-    private static void Test(string sourceText, bool useDefaultFormatting, bool removeRedundantCalls, bool shortenCodeWithUsingStatic)
+    private static void Test(
+      string sourceText,
+      bool useDefaultFormatting,
+      bool removeRedundantCalls,
+      bool shortenCodeWithUsingStatic,
+      NodeKind nodeKind = NodeKind.CompilationUnit)
     {
         if (useDefaultFormatting)
         {
@@ -614,9 +916,10 @@ class C { }");
         var quoter = new Quoter
         {
             UseDefaultFormatting = useDefaultFormatting,
-            RemoveRedundantModifyingCalls = removeRedundantCalls
+            RemoveRedundantModifyingCalls = removeRedundantCalls,
+            ShortenCodeWithUsingStatic = shortenCodeWithUsingStatic
         };
-        var generatedCode = quoter.Quote(sourceText);
+        var generatedCode = quoter.Quote(sourceText, nodeKind);
 
         var resultText = quoter.Evaluate(generatedCode);
 
@@ -630,7 +933,7 @@ class C { }");
         Assert.Equal(sourceText, resultText);
     }
 
-    public void CheckSourceFiles()
+    internal void CheckSourceFiles()
     {
         var rootFolder = @"C:\roslyn-internal\Closed\Test\Files\";
         var files = Directory.GetFiles(rootFolder, "*.cs", SearchOption.AllDirectories);
@@ -640,7 +943,7 @@ class C { }");
         }
     }
 
-    public void VerifyRoundtrip(string file)
+    internal void VerifyRoundtrip(string file)
     {
         try
         {
