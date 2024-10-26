@@ -47,6 +47,6 @@ jobs:
   - task: PublishBuildArtifacts@1
     displayName: Publish Package Artifacts
     inputs:
-      pathToPublish: $(build.sourcesdirectory)/src/uno/RoslynQuoter/bin/Release/net9.0/publish/wwwroot
+      pathToPublish: $(build.sourcesdirectory)/src/uno/RoslynQuoter/bin/Release/net9.0-browserwasm/publish/wwwroot
       artifactType: container
       artifactName: RoslynQuoter-Wasm
