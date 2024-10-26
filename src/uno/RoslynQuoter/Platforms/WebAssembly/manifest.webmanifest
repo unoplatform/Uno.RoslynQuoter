@@ -1,0 +1,10 @@
+{
+  "background_color": "#ffffff",
+  "description": "RoslynQuoter",
+  "display": "standalone",
+  "name": "RoslynQuoter",
+  "short_name": "RoslynQuoter",
+  "start_url": "/index.html",
+  "theme_color": "#ffffff",
+  "scope": "/"
+}

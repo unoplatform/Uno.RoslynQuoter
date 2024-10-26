@@ -1,22 +1,16 @@
 jobs:
 - job: VS_Latest
-  container: unoplatform/wasm-build:2.0
 
   pool:
     vmImage: 'ubuntu-latest'
 
-  variables:
-    SourceLinkEnabled: false
-    DotnetRuntimePath: /usr/share/dotnet
-
   steps:
 
   - task: UseDotNet@2
-    displayName: 'Use .Net Core runtime 2.2.x'
+    displayName: 'Use .NET SDK'
     inputs:
-      packageType: runtime
-      version: 2.2.x
-      installationPath: '$(DotnetRuntimePath)'
+      version: 9.0.100-rc.2.24474.11
+      includePreviewVersions: true
 
   - task: nventiveCanaryUpdater@5
     displayName: 'Canary Update'
@@ -28,40 +22,31 @@ jobs:
       resultFile: '$(Build.ArtifactStagingDirectory)/result.json'
       nugetUpdaterVersion: 2.0.6
       packageAuthor: nventive
-  
-  - task: UseDotNet@2
-    displayName: 'Use .Net Core runtime 2.1.0'
-    inputs:
-      packageType: runtime
-      version: 2.1.0
-      installationPath: '$(DotnetRuntimePath)'
 
-  - task: GitVersion@5
+
+  - task: gitversion/setup@0
+    retryCountOnTaskFailure: 3
     inputs:
+      versionSpec: '5.10.3'
+
+  - task: gitversion/execute@0
+    retryCountOnTaskFailure: 3
+    inputs:
+      updateAssemblyInfo: 'False'
       useConfigFile: true
       configFilePath: gitversion.yml
-
-  - bash: |
-      cd ~
-      git clone https://github.com/emscripten-core/emsdk
-      cd emsdk
-      ./emsdk install sdk-1.39.11
-      ./emsdk activate sdk-1.39.11
-
-    displayName: 'Setup Emscripten'
+    displayName: Use GitVersion
 
   - script: |
-      source ~/emsdk/emsdk_env.sh
-      cd $(build.sourcesdirectory)
-      msbuild /r /p:Configuration=Release $(build.sourcesdirectory)/src/uno/RoslynQuoter.Wasm/RoslynQuoter.Wasm.csproj "/p:InformationalVersion=$GITVERSION_INFORMATIONALVERSION" 
+      dotnet publish -f net9.0-browserwasm $(build.sourcesdirectory)/src/uno/RoslynQuoter/RoslynQuoterApp.csproj "/p:InformationalVersion=$GITVERSION_INFORMATIONALVERSION" 
 
     env:
       GITVERSION_FullSemVer: $(GITVERSION_FullSemVer)
-    displayName: 'Build Calculator'
+    displayName: 'Build'
   
   - task: PublishBuildArtifacts@1
     displayName: Publish Package Artifacts
     inputs:
-      pathToPublish: $(build.sourcesdirectory)/src/uno/RoslynQuoter.Wasm/bin/Release/netstandard2.0/dist
+      pathToPublish: $(build.sourcesdirectory)/src/uno/RoslynQuoter/bin/Release/net9.0-browserwasm/publish/wwwroot
       artifactType: container
       artifactName: RoslynQuoter-Wasm
