@@ -1,0 +1,19 @@
+<linker>
+    <assembly fullname="Microsoft.CodeAnalysis"/>
+    <assembly fullname="Microsoft.CodeAnalysis.CSharp"/>
+    <assembly fullname="System.ComponentModel.Composition"/>
+    <assembly fullname="Microsoft.CodeAnalysis.Scripting"/>
+    <assembly fullname="mscorlib"/>
+    <assembly fullname="System"/>
+    <assembly fullname="System.Runtime"/>
+    <assembly fullname="System.Runtime.Extensions"/>
+    <assembly fullname="System.Collections"/>
+    <assembly fullname="System.Core"/>
+    <assembly fullname="Uno.UI"/>
+    <assembly fullname="WebAssembly.Bindings" />
+
+    <assembly fullname="System.Core">
+        <!-- This is required by JSon.NET and any expression.Compile caller -->
+        <type fullname="System.Linq.Expressions*" />
+    </assembly>
+</linker>
